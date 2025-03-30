@@ -114,7 +114,7 @@ const (
 	B10 EncodingScheme = "base10"
 )
 
-func RandomString(enc *EncodingScheme, charSubset *string, byteLen int) (string, error) {
+func RandomString(enc *EncodingScheme, charSubset *string, strLen uint) (string, error) {
 	var base = B64
 	var err error = nil
 	var result = ""
@@ -123,21 +123,34 @@ func RandomString(enc *EncodingScheme, charSubset *string, byteLen int) (string,
 		base = *enc
 	}
 
-	bytes := make([]byte, byteLen)
-	_, err = rand.Read(bytes)
-
 	switch base {
 	case B10:
-		result = base64.NewEncoding("0123456789").EncodeToString(bytes)
+		byteLen := int(math.Ceil(float64(strLen*4) / 8))
+		bytes := make([]byte, byteLen)
+
+		for i := range byteLen {
+			bytes[i] = byte(RandomUint32(10))
+		}
+
+		result = string(bytes)
 	case HEX:
+		byteLen := int(math.Ceil(float64(strLen*4) / 8))
+		bytes := make([]byte, byteLen)
+		_, err = rand.Read(bytes)
 		result = hex.EncodeToString(bytes)
 	case B32:
+		byteLen := int(math.Ceil(float64(strLen*5) / 8))
+		bytes := make([]byte, byteLen)
+		_, err = rand.Read(bytes)
 		if charSubset != nil {
 			result = base32.NewEncoding(*charSubset).EncodeToString(bytes)
 		} else {
 			result = base32.StdEncoding.EncodeToString(bytes)
 		}
 	case B64:
+		byteLen := int(math.Ceil(float64(strLen*6) / 8))
+		bytes := make([]byte, byteLen)
+		_, err = rand.Read(bytes)
 		if charSubset != nil {
 			result = base64.NewEncoding(*charSubset).EncodeToString(bytes)
 		} else {
