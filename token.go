@@ -140,7 +140,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 				break
 			}
 		}
-
+		println(bytes)
 		result = string(bytes)
 	case HEX:
 		byteLen := int(math.Ceil(float64(strLen*4) / 8))
