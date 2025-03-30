@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"strconv"
 )
 
 type Token string
@@ -129,7 +130,15 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 
 		for i := 0; i < byteLen; i++ {
-			bytes[i] = byte(RandomUint32(10))
+			strBytes := []byte(strconv.Itoa(int(RandomUint32(10))))
+
+			for j := 0; j < len(strBytes) && j <= i; j++ {
+				bytes[i] = strBytes[j]
+			}
+			i = len(strBytes) - 1
+			if i <= 0 {
+				break
+			}
 		}
 
 		result = string(bytes)
