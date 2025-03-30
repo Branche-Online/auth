@@ -132,7 +132,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		for i := 0; i < byteLen; i++ {
 			strBytes := []byte(strconv.Itoa(int(RandomUint32(10))))
 
-			for j := 0; j < len(strBytes) && j <= i; j++ {
+			for j := 0; (j < len(strBytes)) && (j <= byteLen); j++ {
 				bytes[i] = strBytes[j]
 			}
 			i = len(strBytes) - 1
