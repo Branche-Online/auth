@@ -166,7 +166,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 		_, err = rand.Read(bytes)
 		if charSubset != nil {
-			result = base64.NewEncoding(*charSubset).WithPadding(int32(([]byte("_"))[0])).EncodeToString(bytes)
+			result = base64.NewEncoding(*charSubset).WithPadding(rune(([]byte("_"))[0])).EncodeToString(bytes)
 		} else {
 			result = base64.URLEncoding.EncodeToString(bytes)
 		}
