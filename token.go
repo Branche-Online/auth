@@ -140,6 +140,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 				break
 			}
 		}
+		println("Bytle Length: ", byteLen)
 		println(bytes)
 		result = string(bytes)
 	case HEX:
