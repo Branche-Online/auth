@@ -136,10 +136,6 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 				bytes[i] = strBytes[j]
 				i++
 			}
-			i = len(strBytes) - 1
-			if i <= 0 {
-				break
-			}
 		}
 		println("String Length: ", strLen)
 		println("Byte Length: ", byteLen)
