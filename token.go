@@ -27,10 +27,8 @@ type TokenMaker interface {
 	ReadOTP(token Token) (UID, error)
 }
 
-/**
- * Generates a random 32 bit floating number between 0 and 1.
- * The function uses the crypto/rand package to generate 23 random bits for the mantissa
- */
+// Generates a random 32 bit floating number between 0 and 1.
+// The function uses the crypto/rand package to generate 23 random bits for the mantissa
 func RandomFloat32() float32 {
 	bytes := make([]byte, 3)
 	rand.Read(bytes)
@@ -45,10 +43,8 @@ func RandomFloat32() float32 {
 	return math.Float32frombits(binary.BigEndian.Uint32(bytes)) - 1
 }
 
-/**
- * Generates a random 64 bit floating number between 0 and 1.
- * The function uses the crypto/rand package to generate 52 random bits for the mantissa
- */
+// Generates a random 64 bit floating number between 0 and 1.
+// The function uses the crypto/rand package to generate 52 random bits for the mantissa
 func RandomFloat64() float64 {
 	bytes := make([]byte, 7)
 	rand.Read(bytes)
@@ -83,11 +79,9 @@ func RandomUint64(max uint64) uint64 {
 	return randUint64 % max
 }
 
-/*
- * Generates a random integer value of arbitrary size that is less than the given max value.
- * The function uses a rejection sampling technique based on comparing the random value after it is
- * bit shifted with the max value.
- */
+// Generates a random integer value of arbitrary size that is less than the given max
+// value. The function uses a rejection sampling technique based on comparing
+// the random value after it is bit shifted with the max value.
 func RandomInteger(max *big.Int) *big.Int {
 	randInt := new(big.Int)
 	shift := max.BitLen() % 8
@@ -116,6 +110,10 @@ const (
 	B10 EncodingScheme = "base10"
 )
 
+// Generates either a base10, 16, 32 or 64 encoded string of the specified length.
+// The charSubset parameter is used when the encoding scheme is base32 or base64.
+// It allows the user to specify a custom character set for the encoding.
+// If charSubset is nil, the default encoding scheme will be used.
 func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string, error) {
 	var base = B64
 	var err error = nil
@@ -135,6 +133,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 			for j := 0; (j < len(strBytes)) && (j <= byteLen); j++ {
 				bytes[i] = strBytes[j]
+				i++
 			}
 			i = len(strBytes) - 1
 			if i <= 0 {
@@ -143,7 +142,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		}
 		println("String Length: ", strLen)
 		println("Byte Length: ", byteLen)
-		for i := 0; i < len(bytes); i++ {
+		for i := range bytes {
 			fmt.Printf("%x ", bytes[i])
 		}
 		result = string(bytes)
@@ -166,7 +165,8 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 		_, err = rand.Read(bytes)
 		if charSubset != nil {
-			result = base64.NewEncoding(*charSubset).WithPadding(rune(([]byte("_"))[0])).EncodeToString(bytes)
+			result = base64.NewEncoding(*charSubset).WithPadding([]rune("_")[0]).
+				EncodeToString(bytes)
 		} else {
 			result = base64.URLEncoding.EncodeToString(bytes)
 		}
