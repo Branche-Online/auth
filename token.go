@@ -114,7 +114,7 @@ const (
 	B10 EncodingScheme = "base10"
 )
 
-func RandomString(enc *EncodingScheme, charSubset *string, strLen uint) (string, error) {
+func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string, error) {
 	var base = B64
 	var err error = nil
 	var result = ""
