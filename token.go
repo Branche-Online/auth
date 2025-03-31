@@ -124,7 +124,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 	switch base {
 	case B10:
-		byteLen := int(math.Ceil(float64(strLen*4) / 8))
+		byteLen := int(strLen)
 		bytes := make([]byte, byteLen)
 
 		for i := 0; i < byteLen; i++ {
