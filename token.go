@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -130,17 +129,11 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 		for i := 0; i < byteLen; i++ {
 			strBytes := []byte(strconv.Itoa(int(RandomUint32(10))))
-			println(len(strBytes))
 
 			for j := 0; (j < len(strBytes)) && (j <= byteLen); j++ {
 				bytes[i] = strBytes[j]
 				i++
 			}
-		}
-		println("String Length: ", strLen)
-		println("Byte Length: ", byteLen)
-		for i := range bytes {
-			fmt.Printf("0x%x ", bytes[i])
 		}
 		result = string(bytes)
 	case HEX:
@@ -153,7 +146,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 		_, err = rand.Read(bytes)
 		if charSubset != nil {
-			result = base32.NewEncoding(*charSubset).WithPadding(base64.NoPadding).EncodeToString(bytes)
+			result = base32.NewEncoding(*charSubset).WithPadding(base32.NoPadding).EncodeToString(bytes)
 		} else {
 			result = base32.StdEncoding.EncodeToString(bytes)
 		}
