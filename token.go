@@ -9,7 +9,6 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"strconv"
 )
 
 type Token string
@@ -128,12 +127,8 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 
 		for i := 0; i < byteLen; i++ {
-			strBytes := []byte(strconv.Itoa(int(RandomUint32(10))))
-
-			for j := 0; (j < len(strBytes)) && (j <= byteLen); j++ {
-				bytes[i] = strBytes[j]
-				i++
-			}
+			var b rune = rune(RandomUint32(10))
+			bytes[i] = byte(b)
 		}
 		result = string(bytes)
 	case HEX:
