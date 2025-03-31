@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"strconv"
 )
 
 type Token string
@@ -130,7 +129,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 		for i := range byteLen {
 			r := RandomUint32(10)
-			strBytes := []byte(strconv.Itoa(int(r)))
+			strBytes := fmt.Appendf(nil, "%d", r)
 			b := strBytes[0]
 			println(len(strBytes))
 			fmt.Printf("%d:0x%X ", r, b)
