@@ -124,6 +124,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 	switch base {
 	case B10:
 		byteLen := int(strLen)
+		println(byteLen)
 		bytes := make([]byte, byteLen)
 
 		for i := 0; i < byteLen; i++ {
