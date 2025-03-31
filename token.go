@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 )
@@ -128,7 +129,9 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 		for i := 0; i < byteLen; i++ {
 			b := make([]byte, 4)
-			binary.BigEndian.PutUint32(b, RandomUint32(10))
+			randInt := RandomUint32(10)
+			binary.BigEndian.PutUint32(b, randInt)
+			fmt.Printf("%d : %X ", randInt, b[0])
 			bytes[i] = b[3]
 		}
 		result = string(bytes)
