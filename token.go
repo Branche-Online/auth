@@ -127,7 +127,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		byteLen := int(strLen)
 		bytes := make([]byte, byteLen)
 
-		for i := 0; i < byteLen; i++ {
+		for i := range byteLen {
 			r := RandomUint32(10)
 			b := byte(r)
 			fmt.Printf("%d:0x%X ", r, b)
