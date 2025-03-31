@@ -130,7 +130,9 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 
 		for i := range byteLen {
 			r := RandomUint32(10)
-			b := []byte(strconv.Itoa(int(r)))[0]
+			strBytes := []byte(strconv.Itoa(int(r)))
+			b := strBytes[0]
+			println(len(strBytes))
 			fmt.Printf("%d:0x%X ", r, b)
 			bytes[i] = b
 		}
