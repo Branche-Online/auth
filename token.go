@@ -128,8 +128,9 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		bytes := make([]byte, byteLen)
 
 		for i := 0; i < byteLen; i++ {
-			var b rune = rune(RandomUint32(10))
-			bytes[i] = byte(b)
+			b := make([]byte, 4)
+			binary.BigEndian.PutUint32(b, RandomUint32(10))
+			bytes[i] = b[0]
 		}
 		result = string(bytes)
 	case HEX:
