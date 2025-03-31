@@ -131,8 +131,8 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 			r := RandomUint32(10)
 			strBytes := fmt.Appendf(nil, "%d", r)
 			b := strBytes[0]
-			println(len(strBytes))
-			fmt.Printf("%d:0x%X ", r, b)
+			//println(len(strBytes))
+			//fmt.Printf("%d:0x%X ", r, b)
 			bytes[i] = b
 		}
 		result = string(bytes)
