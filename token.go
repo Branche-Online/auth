@@ -129,7 +129,7 @@ func RandomString(enc *EncodingScheme, strLen uint, charSubset *string) (string,
 		for i := 0; i < byteLen; i++ {
 			b := make([]byte, 4)
 			binary.BigEndian.PutUint32(b, RandomUint32(10))
-			bytes[i] = b[0]
+			bytes[i] = b[3]
 		}
 		result = string(bytes)
 	case HEX:
