@@ -15,12 +15,19 @@ import (
 	"time"
 )
 
+// Time is an alias of the time data type representing a point in time based on the unix epoch time.
+type Time time.Time
+
+// Time string represented by the output of t.UTC().Format(time.UnixDate)
+type UTCTimeString string
+
 // Time is a primitive of the time data type representing a duration in nanoseconds.
-type Time time.Duration
+// Durations are represented as an int64 value. Therefore the maximum value represents 290years
+type Duration time.Duration
 
 // Calculates the nanosecond duration between the current time and the inputs
-func newDuration(hour, min, sec, nsec int) Time {
-	return Time(
+func makeDuration(hour, min, sec, nsec int) Duration {
+	return Duration(
 		time.Duration(hour)*time.Hour +
 			time.Duration(min)*time.Minute +
 			time.Duration(sec)*time.Second +
@@ -28,23 +35,23 @@ func newDuration(hour, min, sec, nsec int) Time {
 	)
 }
 
-// NewTime is a constructor for Time and returns new Time.
-func NewTime(hour, min, sec, nsec int) Time {
-	return newDuration(hour, min, sec, nsec)
+// NewDuration is a constructor for Duration and returns new Duration.
+func NewDuration(hour, min, sec, nsec int) Duration {
+	return makeDuration(hour, min, sec, nsec)
 }
 
-func (t *Time) setFromString(str string) {
+func (t *Duration) setFromString(str string) {
 	var h, m, s, n int
 	fmt.Sscanf(str, "%02d:%02d:%02d.%09d", &h, &m, &s, &n)
-	*t = newDuration(h, m, s, n)
+	*t = makeDuration(h, m, s, n)
 }
 
-func (t *Time) setFromTime(src time.Time) {
-	*t = newDuration(src.Hour(), src.Minute(), src.Second(), src.Nanosecond())
+func (t *Duration) setFromTime(src time.Time) {
+	*t = makeDuration(src.Hour(), src.Minute(), src.Second(), src.Nanosecond())
 }
 
 // String implements fmt.Stringer interface.
-func (t Time) String() string {
+func (t Duration) String() string {
 	if nsec := t.nanoseconds(); nsec > 0 {
 		return fmt.Sprintf("%02d:%02d:%02d.%09d", t.hours(), t.minutes(), t.seconds(), nsec)
 	} else {
@@ -53,29 +60,29 @@ func (t Time) String() string {
 	}
 }
 
-func (t Time) hours() int {
+func (t Duration) hours() int {
 	return int(time.Duration(t).Truncate(time.Hour).Hours())
 }
 
-func (t Time) minutes() int {
+func (t Duration) minutes() int {
 	return int((time.Duration(t) % time.Hour).Truncate(time.Minute).Minutes())
 }
 
-func (t Time) seconds() int {
+func (t Duration) seconds() int {
 	return int((time.Duration(t) % time.Minute).Truncate(time.Second).Seconds())
 }
 
-func (t Time) nanoseconds() int {
+func (t Duration) nanoseconds() int {
 	return int((time.Duration(t) % time.Second).Nanoseconds())
 }
 
 // MarshalJSON implements json.Marshaler to convert Time to json serialization.
-func (t Time) MarshalJSON() ([]byte, error) {
+func (t Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.String())
 }
 
 // UnmarshalJSON implements json.Unmarshaler to deserialize json data.
-func (t *Time) UnmarshalJSON(data []byte) error {
+func (t *Duration) UnmarshalJSON(data []byte) error {
 	// ignore null
 	if string(data) == "null" {
 		return nil
@@ -249,4 +256,18 @@ func GenerateSecret(keySize uint) (Key, error) {
 		return "", err
 	}
 	return Key(hex.EncodeToString(bytes)), nil
+}
+
+// Generic event data structure
+// The event structure can be used to represent the occurence of any event in a system.
+// It contains an ID, a timestamp, a type, and data associated with the event.
+// The ID is a unique identifier for the event.
+// The timestamp is the time when the event occurred.
+// The type is a string that represents the category, topic, or channel of an event.
+// The data is an interface that can hold any type of data associated with the event.
+type Event struct {
+	ID        string `json:"id"`
+	Timestamp Time   `json:"timestamp"`
+	Type      string `json:"type"`
+	Data      any    `json:"data"`
 }

@@ -27,7 +27,7 @@ func (status UserStatus) string() string {
 }
 
 type User interface {
-	ID() UID
+	UID() UID
 	Status() UserStatus
 	DisplayName() string
 }
@@ -43,7 +43,7 @@ const (
 )
 
 type UserProfile interface {
-	ID() string
+	PID() string
 	UserId() UID
 	IdPType() ProviderType
 	IdPName() string
