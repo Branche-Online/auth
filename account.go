@@ -50,14 +50,10 @@ type UserProfile interface {
 	IdPAccountId() string
 }
 
-type UserData interface {
-	any
-}
-
 type AccountManager interface {
-	CreateUser(user UserData) (*User, error)
+	CreateUser(data any) (*User, error)
 	ReadUser(uid UID) (*User, error)
-	UpdateUser(uid UID, data *UserData) error
+	UpdateUser(uid UID, data any) error
 	ConnectProfile(uid UID, profile *UserProfile) error
 	DisconnectProfile(uid UID, prid string) error
 	DeleteUser(uid UID) error
