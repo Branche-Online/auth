@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Branche-Online/auth"
+	"github.com/branche-online/auth"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
@@ -89,11 +89,11 @@ func (profile *AccountProfileInDatabase) IdPAccountId() string {
 	return *profile.ProviderAccountId
 }
 
-// AccountData represents the user account data
-type AccountData struct {
+// AccountDataModel represents the user account data
+type AccountDataModel struct {
 	State         auth.UserStatus `json:"status"`
-	Username      *string         `json:"username"`
-	Email         *string         `json:"email"`
+	Username      *string         `gorm:"unique" json:"username"`
+	Email         *string         `gorm:"unique" json:"email"`
 	EmailVerified bool            `gorm:"default false" json:"email_verified"`
 	Password      *string         `json:"password"`
 	LastLogin     *auth.Time      `json:"last_login"`
@@ -114,8 +114,10 @@ type AccountData struct {
 // It contains the user information and the profiles associated with the user
 type AccountInDatabase struct {
 	AccountBaseModel
-	AccountData
-	Profiles []AccountProfileInDatabase `gorm:"foreignKey:UserID" json:"profiles"`
+	AccountDataModel
+	OTPs     []auth.OTP                 `gorm:"foreignKey:uid" json:"otps"`
+	Sessions []auth.Session             `gorm:"foreignKey:user_id" json:"sessions"`
+	Profiles []AccountProfileInDatabase `gorm:"foreignKey:user_id" json:"profiles"`
 }
 
 // Implementation of the auth.User interface
@@ -186,32 +188,52 @@ type DatabaseAccountManager struct {
 // It initializes the database connection and migrates the database schema
 // It creates the database tables for the user accounts and profiles
 // It returns an error if the database connection fails or if the migration fails
-func NewDatabaseAccountManager(dsn string, dbType DbDriverType) (*DatabaseAccountManager, error) {
+func NewDatabaseAccountManager(dsn string, dbType DbDriverType, cfg *gorm.Config) (*DatabaseAccountManager, error) {
 
 	dbAccMgr := &DatabaseAccountManager{}
 	var db *gorm.DB
 	var err error = nil
+	var config = &gorm.Config{}
+	if cfg != nil {
+		config = cfg
+	}
 
 	switch dbType {
 	case PGSQL:
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(postgres.Open(dsn), config)
 	case SQLITE:
-		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(sqlite.Open(dsn), config)
 	case MYSQL:
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(mysql.Open(dsn), config)
+	case MARIADB:
+		db, err = gorm.Open(mysql.Open(dsn), config)
 	default:
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		db, err = gorm.Open(postgres.Open(dsn), config)
 	}
 
 	if err != nil {
 		dbAccMgr.ds = db
 
-		if err := db.AutoMigrate(&AccountInDatabase{}, &AccountProfileInDatabase{}); err != nil {
+		if err := db.AutoMigrate(&AccountInDatabase{}, &AccountProfileInDatabase{}, &auth.Session{}); err != nil {
 			return dbAccMgr, err
 		}
 	}
 
 	return nil, err
+}
+
+// SetDatastore sets the database connection for the account manager
+// It will perform an automigration of the database schema
+// It returns an error if the database connection is nil
+func (dbAccMgr *DatabaseAccountManager) SetDatastore(db *gorm.DB) error {
+
+	if db == nil {
+		return errors.New("datastore not initialized")
+	}
+
+	dbAccMgr.ds = db
+
+	return db.AutoMigrate(&AccountInDatabase{}, &AccountProfileInDatabase{})
 }
 
 // GetDatastore returns the database connection
@@ -225,7 +247,7 @@ func (dbAccMgr *DatabaseAccountManager) GetDatastore() (*gorm.DB, error) {
 }
 
 // CreateUser creates a new user account in the database
-// It takes a pointer to the AccountData struct as a parameter
+// It takes a pointer to the AccountDataModel struct as a parameter
 // It returns a pointer to the AccountInDatabase struct and an error
 // It creates a new user account in the database with the provided data
 // It returns an error if the database connection fails or if the user account creation fails
@@ -236,7 +258,7 @@ func (dbAccMgr *DatabaseAccountManager) GetDatastore() (*gorm.DB, error) {
 func (dbAccMgr *DatabaseAccountManager) CreateUser(data any) (*AccountInDatabase, error) {
 	db, err := dbAccMgr.GetDatastore()
 
-	udata, ok := data.(*AccountData)
+	udata, ok := data.(*AccountDataModel)
 	if !ok {
 		return nil, errors.New("invalid user data")
 	}
@@ -293,12 +315,12 @@ func (dbAccMgr *DatabaseAccountManager) ReadUser(uid auth.UID) (*AccountInDataba
 }
 
 // UpdateUser updates a user account in the database
-// It takes a user ID and a pointer to the AccountData struct as parameters
+// It takes a user ID and a pointer to the AccountDataModel struct as parameters
 func (dbAccMgr *DatabaseAccountManager) UpdateUser(uid auth.UID, data any) error {
 	db, err := dbAccMgr.GetDatastore()
 
 	if err != nil {
-		udata, ok := data.(*AccountData)
+		udata, ok := data.(*AccountDataModel)
 		if !ok {
 			return errors.New("invalid user data")
 		}
@@ -351,6 +373,14 @@ func (dbAccMgr *DatabaseAccountManager) ConnectProfile(uid auth.UID, profile *Ac
 			return acc.Error
 		}
 
+		if profile == nil {
+			return errors.New("invalid profile data")
+		}
+
+		if auth.UID(profile.UID.String()) != uid {
+			return errors.New("profile and user mismatch")
+		}
+
 		err = db.Model(acc).Association("Profiles").Append(profile)
 	}
 
@@ -382,6 +412,108 @@ func (dbAccMgr *DatabaseAccountManager) DisconnectProfile(uid auth.UID, prid str
 	return err
 }
 
+// ConnectSession connects a user account to a session in the database
+// It takes a user ID and a pointer to the Session struct as parameters
+// It returns an error if the database connection fails or if the user and session association fails
+func (dbAccMgr *DatabaseAccountManager) ConnectSession(uid auth.UID, ssn *auth.Session) error {
+	db, err := dbAccMgr.GetDatastore()
+
+	if err != nil {
+		acc := db.Model(&AccountInDatabase{}).Where("id = ?", uid).First(&AccountInDatabase{})
+		if acc.Error != nil {
+			return acc.Error
+		}
+
+		if ssn == nil {
+			return errors.New("invalid session data")
+		}
+
+		if ssn.UserId != uid {
+			return errors.New("session and user mismatch")
+		}
+
+		err = db.Model(acc).Association("Sessions").Append(ssn)
+	}
+
+	return err
+}
+
+// DisconnectSession disconnects a session from a user account in the database
+// It takes a user ID and a session ID as parameters
+// It returns an error if the database connection fails or if the user and session disassociation fails
+func (dbAccMgr *DatabaseAccountManager) DisconnectSession(uid auth.UID, sid auth.SID) error {
+	db, err := dbAccMgr.GetDatastore()
+
+	if err != nil {
+		acc := db.Model(&AccountInDatabase{}).Where("id = ?", uid).First(&AccountInDatabase{})
+		if acc.Error != nil {
+			return acc.Error
+		}
+
+		ssn := &auth.Session{}
+		err = db.Where("id = ?", ssn).First(ssn).Error
+
+		if err != nil {
+			return err
+		}
+
+		err = db.Model(acc).Association("Session").Delete(ssn)
+	}
+
+	return err
+}
+
+// ConnectOTP connects a user account to a otp in the database
+// It takes a user ID and a pointer to the otp struct as parameters
+// It returns an error if the database connection fails or if the user and otp association fails
+func (dbAccMgr *DatabaseAccountManager) ConnectOTP(uid auth.UID, otp *auth.OTP) error {
+	db, err := dbAccMgr.GetDatastore()
+
+	if err != nil {
+		acc := db.Model(&AccountInDatabase{}).Where("id = ?", uid).First(&AccountInDatabase{})
+		if acc.Error != nil {
+			return acc.Error
+		}
+
+		if otp == nil {
+			return errors.New("invalid otp data")
+		}
+
+		if otp.UID != uid {
+			return errors.New("otp and user mismatch")
+		}
+
+		err = db.Model(acc).Association("OTPs").Append(otp)
+	}
+
+	return err
+}
+
+// DisconnectOTP disconnects a otp from a user account in the database
+// It takes a user ID and a otp token as parameters
+// It returns an error if the database connection fails or if the user and otp disassociation fails
+func (dbAccMgr *DatabaseAccountManager) DisconnectOTP(uid auth.UID, tkn auth.Token) error {
+	db, err := dbAccMgr.GetDatastore()
+
+	if err != nil {
+		acc := db.Model(&AccountInDatabase{}).Where("id = ?", uid).First(&AccountInDatabase{})
+		if acc.Error != nil {
+			return acc.Error
+		}
+
+		otp := &auth.OTP{}
+		err = db.Where("uid = ? AND token = ?", uid, tkn).First(otp).Error
+
+		if err != nil {
+			return err
+		}
+
+		err = db.Model(acc).Association("OTPs").Delete(otp)
+	}
+
+	return err
+}
+
 // DeleteUser deletes a user account from the database
 // It takes a user ID as a parameter
 // It returns an error if the database connection fails or if the user account deletion fails
@@ -390,6 +522,24 @@ func (dbAccMgr *DatabaseAccountManager) DeleteUser(uid auth.UID) error {
 
 	if err != nil {
 		err = db.Delete(&AccountInDatabase{}, "id = ?", uid).Error
+	}
+
+	return err
+}
+
+// Close closes the database connection
+// It returns an error if the database connection fails
+// It should be called when the application is shutting down
+// It should be called when the account manager is no longer needed
+// It should not be called in the middle of a transaction
+func (dbAccMgr *DatabaseAccountManager) Close() error {
+	db, err := dbAccMgr.GetDatastore()
+
+	if err != nil {
+		conn, err := db.DB()
+		if err != nil {
+			return conn.Close()
+		}
 	}
 
 	return err

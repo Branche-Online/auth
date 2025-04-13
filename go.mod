@@ -1,4 +1,4 @@
-module github.com/Branche-Online/auth
+module github.com/branche-online/auth
 
 go 1.24.1
 
