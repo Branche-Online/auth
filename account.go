@@ -70,17 +70,17 @@ type AccountManager interface {
 	ReadUser(uid UID) (*User, error)
 	// Takes a user id and a data object of any shape and updates the corresponding user object
 	UpdateUser(uid UID, data any) error
-	// Creates an association between a user and a profile
+	// Creates an association (relation at the datastore level) between a user and a profile
 	ConnectProfile(uid UID, profile *UserProfile) error
-	// Removes the association between a user and a profile
+	// Removes the association (relation at the datastore level) between a user and a profile
 	DisconnectProfile(uid UID, prid string) error
-	// Creates an association between a user and a session
+	// Creates an association (relation at the datastore level) between a user and a session
 	ConnectSession(uid UID, ssn *Session) error
-	// Removes the association between a user and a session
+	// Removes the association (relation at the datastore level) between a user and a session
 	DisconnectSession(uid UID, sid SID) error
-	// Creates an association between a user and a OTP
+	// Creates an association (relation at the datastore level) between a user and a OTP
 	ConnectOTP(uid UID, otp *OTP) error
-	// Removes the association between a user and a OTP
+	// Removes the association (relation at the datastore level) between a user and a OTP
 	DisconnectOTP(uid UID, tkn Token) error
 	// Deletes the user object identified by the given user id
 	// This should also delete all associated profiles
