@@ -5,8 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"math/big"
+	"os"
 
 	"github.com/branche-online/auth"
 	"github.com/google/uuid"
@@ -45,6 +48,61 @@ func randomChars(alphabet string, length uint) (string, error) {
 		b[i] = rune(alphabet[rIdx.Int64()])
 	}
 	return string(b), nil
+}
+
+func LoadRSAKeyFromPEM(path string) (*rsa.PrivateKey, error) {
+	pemData, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read PEM file: %v", err)
+	}
+
+	block, _ := pem.Decode(pemData)
+	if block == nil || (block.Type != "RSA PRIVATE KEY" && block.Type != "PRIVATE KEY") {
+		return nil, fmt.Errorf("failed to decode PEM block containing private key")
+	}
+
+	var parsedKey any
+	if block.Type == "RSA PRIVATE KEY" {
+		parsedKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	} else {
+		parsedKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %v", err)
+	}
+
+	rsaKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA private key")
+	}
+
+	return rsaKey, nil
+}
+
+func LoadRSAKeyFromMemory(pemData string) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(pemData))
+	if block == nil || (block.Type != "RSA PRIVATE KEY" && block.Type != "PRIVATE KEY") {
+		return nil, fmt.Errorf("failed to decode PEM block containing private key")
+	}
+
+	var parsedKey any
+	var err error
+
+	if block.Type == "RSA PRIVATE KEY" {
+		parsedKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	} else {
+		parsedKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %v", err)
+	}
+
+	rsaKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA private key")
+	}
+
+	return rsaKey, nil
 }
 
 type RSKATokenVerifier struct {
