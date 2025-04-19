@@ -20,7 +20,7 @@ type OTPInDatabase struct {
 	Token     auth.Token                 `gorm:"primaryKey;autoincrement:false" json:"token"`
 	UID       auth.UID                   `gorm:"primaryKey;autoincrement:false" json:"uid"`
 	TTL       auth.Duration              `json:"ttl"`
-	User      *account.AccountInDatabase `gorm:"foreignKey:uid" json:"otps"`
+	User      *account.AccountInDatabase `gorm:"foreignKey:uid" json:"user"`
 }
 
 // TableName overrides the default table name used by the ORM. It maps OTPs to `otps` table
@@ -176,7 +176,7 @@ func (otpMgr *OTPDbManager) CreateOTP(uid auth.UID, ttl auth.Duration) (*auth.OT
 
 // ReadOTP reads an OTP from the database
 // It takes a token and a user id as input
-// It returns the OTP object and an error if the database operation fails
+// It returns nil and an error if the database operation fails
 // It returns the OTP object if the database operation is successful
 func (otpMgr *OTPDbManager) ReadOTP(token auth.Token, uid auth.UID) (*auth.OTP, error) {
 	db, err := otpMgr.GetDatastore()
