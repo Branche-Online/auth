@@ -9,6 +9,6 @@ type OTP struct {
 
 type OTPManager interface {
 	CreateOTP(uid UID, ttl Duration) (*OTP, error)
-	ReadOTP(token Token) (UID, error)
-	DestroyOTP(token Token) error
+	ReadOTP(token Token, uid UID) (*OTP, error)
+	DestroyOTP(token Token, uid UID) error
 }

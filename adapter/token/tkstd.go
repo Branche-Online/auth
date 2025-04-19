@@ -17,8 +17,24 @@ import (
 	"github.com/nrednav/cuid2"
 )
 
+// TokenAlgorithm is a type representing the algorithm used for token generation.
 type TokenAlgorithm string
 
+// TokenAlgorithm constants
+// These constants represent the different algorithms that can be used for token generation.
+// The supported algorithms are:
+// - CUID2: A unique identifier generator that is designed to be collision-resistant.
+// - UUIDv4: A universally unique identifier (UUID) generator that uses random numbers.
+// - NANOID: A small, secure, URL-friendly, unique string ID generator.
+// - RANDB10: A random string generator that uses base 10 characters.
+// - RANDHEX: A random string generator that uses hexadecimal characters.
+// - RANDB32: A random string generator that uses base 32 characters.
+// - RANDB64: A random string generator that uses base 64 characters.
+// - ALPHA: A random string generator that uses alphanumeric characters.
+// - CUSALPHA: A random string generator that uses a custom alphabet.
+// The custom alphabet must be provided in the TokenGeneratorOptions struct.
+// The length of the generated token is specified in the TokenGeneratorOptions struct.
+// The length must be greater than 0.
 const (
 	CUID2    TokenAlgorithm = "cuid2"
 	UUIDv4   TokenAlgorithm = "uuidv4"
@@ -31,8 +47,19 @@ const (
 	CUSALPHA TokenAlgorithm = "custom-alphabet"
 )
 
+// ALPHABET is a string containing all the characters that can be used in the default alphabet.
+// It includes lowercase and uppercase letters, as well as digits from the standard english alphabet.
 const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+// randomChars generates a random string of the specified length using the provided alphabet.
+// The function uses the crypto/rand package to generate cryptographically secure random numbers.
+// It returns an error if the length is less than or equal to 0, or if there is an error generating the random string.
+// The generated string will contain characters from the specified alphabet.
+// The length of the generated string is specified by the length parameter.
+// The length must be greater than 0.
+// The function returns the generated string and nil error if successful.
+// If the length is less than or equal to 0, the function returns an empty string and an error.
+// If there is an error generating the random string, the function returns an empty string and the error.
 func randomChars(alphabet string, length uint) (string, error) {
 	if length == 0 {
 		return "", fmt.Errorf("length must be greater than 0")
@@ -50,6 +77,21 @@ func randomChars(alphabet string, length uint) (string, error) {
 	return string(b), nil
 }
 
+// LoadRSAKeyFromPEM loads an RSA private key from a PEM file.
+// The function takes the path to the PEM file as input and returns the parsed RSA private key.
+// If the PEM file cannot be read or the key cannot be parsed, an error is returned.
+// The function supports both PKCS1 and PKCS8 formats for the RSA private key.
+// The PEM file must contain a valid RSA private key in one of these formats.
+// The PEM data must be in the format:
+// -----BEGIN RSA PRIVATE KEY-----
+// <base64-encoded key>
+// -----END RSA PRIVATE KEY-----
+// or
+// -----BEGIN PRIVATE KEY-----
+// <base64-encoded key>
+// -----END PRIVATE KEY-----
+// The function returns the parsed RSA private key and nil error if successful.
+// If the PEM file cannot be read or the key cannot be parsed, the function returns nil and an error.
 func LoadRSAKeyFromPEM(path string) (*rsa.PrivateKey, error) {
 	pemData, err := os.ReadFile(path)
 	if err != nil {
@@ -79,6 +121,22 @@ func LoadRSAKeyFromPEM(path string) (*rsa.PrivateKey, error) {
 	return rsaKey, nil
 }
 
+// LoadRSAKeyFromMemory loads an RSA private key from a PEM string.
+// The function takes a string containing the PEM data as input and returns the parsed RSA private key.
+// If the PEM data cannot be parsed, an error is returned.
+// The function supports both PKCS1 and PKCS8 formats for the RSA private key.
+// The PEM data must contain a valid RSA private key in one of these formats.
+// The function returns the parsed RSA private key and nil error if successful.
+// If the PEM data cannot be parsed, the function returns nil and an error.
+// The PEM data must be in the format:
+// -----BEGIN RSA PRIVATE KEY-----
+// <base64-encoded key>
+// -----END RSA PRIVATE KEY-----
+// or
+// -----BEGIN PRIVATE KEY-----
+// <base64-encoded key>
+// -----END PRIVATE KEY-----
+// The function will decode the PEM data and parse the RSA private key.
 func LoadRSAKeyFromMemory(pemData string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(pemData))
 	if block == nil || (block.Type != "RSA PRIVATE KEY" && block.Type != "PRIVATE KEY") {
@@ -105,11 +163,16 @@ func LoadRSAKeyFromMemory(pemData string) (*rsa.PrivateKey, error) {
 	return rsaKey, nil
 }
 
+// RSKATokenVerifier is a struct that implements the TokenVerifier interface for RSA keys.
 type RSKATokenVerifier struct {
 	pss       *rsa.PSSOptions
 	publicKey *rsa.PublicKey
 }
 
+// NewRSKATokenVerifier creates a new RSKATokenVerifier with the provided public key and PSS options.
+// The public key must be a valid RSA public key.
+// The PSS options can be nil if PSS is not used.
+// The function returns a pointer to the RSKATokenVerifier struct.
 func NewRSKATokenVerifier(publicKey *rsa.PublicKey, pss *rsa.PSSOptions) *RSKATokenVerifier {
 	return &RSKATokenVerifier{
 		publicKey: publicKey,
@@ -117,6 +180,15 @@ func NewRSKATokenVerifier(publicKey *rsa.PublicKey, pss *rsa.PSSOptions) *RSKATo
 	}
 }
 
+// Verify verifies the token using the public key and returns true if valid, false otherwise.
+// If the verification is successful, it returns true and nil error.
+// If the verification fails, it returns false and the error.
+// The function uses the crypto/rsa package to verify the token.
+// The token is verified using the public key and the signature.
+// The function takes the token, hash, and signature as input parameters.
+// The hash is the hash function used to generate the signature.
+// The signature is the signature generated by the private key.
+// The function returns true if the token is valid, false otherwise.
 func (rsatkv *RSKATokenVerifier) Verify(tkn auth.Token, hash crypto.Hash, sig []byte) (bool, error) {
 	// Verify the token using the public key and return true if valid, false otherwise.
 	// If the verification is successful, return true and nil error.
@@ -159,16 +231,27 @@ func (rsatkv *RSKATokenVerifier) Verify(tkn auth.Token, hash crypto.Hash, sig []
 	return verified, err
 }
 
+// ECDSATokenVerifier is a struct that implements the TokenVerifier interface for ECDSA keys.
 type ECDSATokenVerifier struct {
 	publicKey *ecdsa.PublicKey
 }
 
+// NewECDSATokenVerifier creates a new ECDSATokenVerifier with the provided public key.
 func NewECDSATokenVerifier(publicKey *ecdsa.PublicKey) *ECDSATokenVerifier {
 	return &ECDSATokenVerifier{
 		publicKey: publicKey,
 	}
 }
 
+// Verify verifies the token using the public key and returns true if valid, false otherwise.
+// If the verification is successful, it returns true and nil error.
+// If the verification fails, it returns false and the error.
+// The function uses the crypto/ecdsa package to verify the token.
+// The token is verified using the public key and the signature.
+// The function takes the token, hash, and signature as input parameters.
+// The hash is the hash function used to generate the signature.
+// The signature is the signature generated by the private key.
+// The function returns true if the token is valid, false otherwise.
 func (ecdsatkv *ECDSATokenVerifier) Verify(tkn auth.Token, hash crypto.Hash, sig []byte) (bool, error) {
 	// Verify the token using the public key and return true if valid, false otherwise.
 	// If the verification is successful, return true and nil error.
@@ -192,18 +275,39 @@ func (ecdsatkv *ECDSATokenVerifier) Verify(tkn auth.Token, hash crypto.Hash, sig
 	return verified, nil
 }
 
+// TokenGeneratorOptions is a struct that contains options for generating tokens.
+// The struct contains the algorithm to be used for token generation, the length of the token,
+// and an optional custom alphabet.
+// The algorithm must be one of the supported algorithms defined in the TokenAlgorithm constants.
+// The length must be greater than 0.
+// The custom alphabet must be provided if the algorithm is CUSALPHA.
+// The struct is used as input to the GenerateToken function in the TokenManager interface.
 type TokenGeneratorOptions struct {
 	Algorithm TokenAlgorithm
 	Length    uint
 	Alphabet  *string
 }
 
+// StandardTokenManager is a struct that implements the TokenManager interface.
+// The struct contains a signer, a hash function, and a token verifier.
+// The signer is used to sign the tokens, the hash function is used to generate a hash of the token,
+// and the token verifier is used to verify the tokens.
+// The struct is used to generate, sign, and verify tokens.
+// The signer must be a valid crypto.Signer implementation.
+// The hash function must be a valid crypto.Hash implementation.
+// The token verifier must be a valid TokenVerifier implementation.
 type StandardTokenManager struct {
 	signer   crypto.Signer
 	hash     crypto.Hash
 	verifier auth.TokenVerifier
 }
 
+// NewStandardTokenManager creates a new StandardTokenManager with the provided signer, hash function, and token verifier.
+// The signer must be a valid crypto.Signer implementation.
+// The hash function must be a valid crypto.Hash implementation.
+// The token verifier must be a valid TokenVerifier implementation.
+// The function returns a pointer to the StandardTokenManager struct.
+// The signer, verifier and hash function must be initialized before calling this function.
 func NewStandardTokenManager(signer crypto.Signer, hash crypto.Hash, verifier auth.TokenVerifier) *StandardTokenManager {
 	return &StandardTokenManager{
 		signer:   signer,
@@ -212,6 +316,14 @@ func NewStandardTokenManager(signer crypto.Signer, hash crypto.Hash, verifier au
 	}
 }
 
+// GenerateToken generates a token based on the provided options specified in the data parameter.
+// The data parameter should be a pointer to a TokenGeneratorOptions struct.
+// The function should return a token of the specified length and algorithm.
+// If the algorithm is not recognized, return an error.
+// If the length is not valid, return an error.
+// If the alphabet is not valid, return an error.
+// If the token generation is successful, return the generated token and nil error.
+// If the token generation fails, return an empty token and the error.
 func (tknMgr *StandardTokenManager) GenerateToken(data any) (auth.Token, error) {
 	// Generate a token based on the provided options specified in the data parameter.
 	// The data parameter should be a pointer to a TokenGeneratorOptions struct.
@@ -282,6 +394,9 @@ func (tknMgr *StandardTokenManager) GenerateToken(data any) (auth.Token, error) 
 	return auth.Token(tkn), err
 }
 
+// SignToken signs the token using the TokenManager's signer and returns the signature.
+// The function takes the token as input and returns the signature and nil error if successful.
+// If the signing fails, it returns an empty signature and the error.
 func (tknMgr *StandardTokenManager) SignToken(token auth.Token) (auth.Digest, error) {
 	// Sign the token using the provided secret key and return the signature.
 	// The function should use the crypto.Signer interface to sign the token.
@@ -309,6 +424,9 @@ func (tknMgr *StandardTokenManager) SignToken(token auth.Token) (auth.Digest, er
 	return auth.Digest(signature), nil
 }
 
+// VerifyToken verifies the token using the TokenManager's verifier and returns true if valid, false otherwise.
+// If the verification is successful, it returns true and nil error.
+// If the verification fails, it returns false and the error.
 func (tknMgr *StandardTokenManager) VerifyToken(token auth.Token, signature auth.Digest) (bool, error) {
 	// Verify the token using the verifiers public key and return true if valid, false otherwise.
 	// If the verification is successful, return true and nil error.

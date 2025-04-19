@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/branche-online/auth"
+	"github.com/branche-online/auth/adapter/database"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
@@ -60,6 +61,12 @@ type AccountProfileInDatabase struct {
 	IDTokenExpiresIn      *auth.Duration    `json:"id_token_expires_in"`
 	SessionState          *string           `json:"session_state"`
 	ExtExpiresIn          *auth.Duration    `json:"ext_expires_in"`
+}
+
+// TableName overrides the default table name used by the ORM. It maps account profiles to `profiles` table
+// It is used to specify the table name used to store the user accounts profiles in the database
+func (AccountProfileInDatabase) TableName() string {
+	return "profiles"
 }
 
 // Implementation of the auth.UserProfile interface
@@ -120,6 +127,12 @@ type AccountInDatabase struct {
 	Profiles []AccountProfileInDatabase `gorm:"foreignKey:user_id" json:"profiles"`
 }
 
+// TableName overrides the default table name used by the ORM. It maps accounts to `users` table
+// It is used to specify the table name used to store the user accounts in the database
+func (AccountInDatabase) TableName() string {
+	return "users"
+}
+
 // Implementation of the auth.User interface
 // UID returns the user ID
 // It is used to identify the user account in the database
@@ -163,19 +176,6 @@ func (user *AccountInDatabase) DisplayName() string {
 	return displayName
 }
 
-// DbDriverType is a type that represents the database driver type
-// It is used to specify the database driver type when creating a new database connection
-// It is used to create a new database connection using the gorm library
-type DbDriverType string
-
-// Supported database driver types
-const (
-	PGSQL   DbDriverType = "pgsql"
-	MYSQL   DbDriverType = "mysql"
-	MARIADB DbDriverType = "mariadb"
-	SQLITE  DbDriverType = "sqlite"
-)
-
 // DatabaseAccountManager type implements the auth.AccountManger interface
 // It is used to create, read, update and delete the user accounts and profiles in the database
 type DatabaseAccountManager struct {
@@ -188,7 +188,7 @@ type DatabaseAccountManager struct {
 // It initializes the database connection and migrates the database schema
 // It creates the database tables for the user accounts and profiles
 // It returns an error if the database connection fails or if the migration fails
-func NewDatabaseAccountManager(dsn string, dbType DbDriverType, cfg *gorm.Config) (*DatabaseAccountManager, error) {
+func NewDatabaseAccountManager(dsn string, dbType database.DbDriverType, cfg *gorm.Config) (*DatabaseAccountManager, error) {
 
 	dbAccMgr := &DatabaseAccountManager{}
 	var db *gorm.DB
@@ -199,13 +199,13 @@ func NewDatabaseAccountManager(dsn string, dbType DbDriverType, cfg *gorm.Config
 	}
 
 	switch dbType {
-	case PGSQL:
+	case database.PGSQL:
 		db, err = gorm.Open(postgres.Open(dsn), config)
-	case SQLITE:
+	case database.SQLITE:
 		db, err = gorm.Open(sqlite.Open(dsn), config)
-	case MYSQL:
+	case database.MYSQL:
 		db, err = gorm.Open(mysql.Open(dsn), config)
-	case MARIADB:
+	case database.MARIADB:
 		db, err = gorm.Open(mysql.Open(dsn), config)
 	default:
 		db, err = gorm.Open(postgres.Open(dsn), config)
@@ -283,11 +283,13 @@ func (dbAccMgr *DatabaseAccountManager) CreateUser(data any) (*AccountInDatabase
 		acc.VerifiedBy = udata.VerifiedBy
 		acc.Extra = datatypes.JSON(udata.Extra)
 
-		err = db.Create(acc).Error
+		result := db.Create(acc)
 
-		if err != nil {
-			return acc, err
+		if result.Error == nil {
+			return acc, nil
 		}
+
+		err = result.Error
 	}
 
 	return nil, err
